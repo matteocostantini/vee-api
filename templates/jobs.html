@@ -1,50 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Data API - Jobs</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/buttons/2.0.1/css/buttons.bootstrap5.min.css" rel="stylesheet">
-    <style>
-        body {
-            background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .gradient-divider {
-            height: 1px;
-            background: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
-            margin: 10px 0;
-        }
-        .jumbotron {
-            background-color: white;
-            padding: 2rem 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .table-responsive {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="jumbotron text-center">
-            <div class="d-flex flex-column flex-md-row justify-content-center align-items-center">
-                <img src="{{ url_for('static', filename='veeam-logo.png') }}" alt="Logo 1" class="mb-4 mb-md-0" style="max-width: 200px;">
-                <div class="gradient-divider d-block d-md-none"></div>
-                <img src="{{ url_for('static', filename='ap-logo.png') }}" alt="Logo 2" class="mb-4 mb-md-0 ms-md-4" style="max-width: 200px;">
-            </div>
-            <div class="gradient-divider d-none d-md-block"></div>
-            <h1 class="display-4">Job List</h1>
-            <p class="lead">This table shows all the job data.</p>
-            <div class="table-responsive">
-            <table id="jobsTable" class="table table-striped">
+{% extends "base.html" %}
+
+{% block title %}Jobs{% endblock %}
+
+{% block content %}
+           <table id="jobsTable" class="table table-striped nowrap" style="width:100%">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -68,48 +27,60 @@
                     </tr>
                 </thead>
             </table>
-            </div>
-        </div>
-    </div>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.0.1/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.0.1/js/buttons.bootstrap5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.0.1/js/buttons.html5.min.js"></script>
+{% endblock %}
+    {% block scripts %}
     <script>
         $(document).ready(function() {
             $('#jobsTable').DataTable({
+                "responsive": true,
+                "language": {
+                    "url": "https://cdn.datatables.net/plug-ins/2.0.8/i18n/it-IT.json",
+                },
                 "processing": true,
                 "serverSide": true,
                 "ajax": {
+                    "dataSrc": "data",
                     "url": "{{ url_for('jobs_jobs_data') }}",
                     "type": "GET"
                 },
                 "columns": [
-                    { "data": "id" },
-                    { "data": "start_time" },
-                    { "data": "end_time" },
-                    { "data": "state" },
+                    { "data": "id", "visible": false },
+                    {
+                      "data": "start_time",
+                      "visible": false,
+/*                      "render": function (data, type, row) {
+                        return new Date(data).toISOString();
+                      }*/
+                    },
+                    { 
+                      "data": "end_time",
+                      "visible": false,
+/*                      "render": function (data, type, row) {
+                        return new Date(data).toISOString();
+                      }*/
+                    },
+                    { "data": "state", "visible": false },
                     { "data": "details", "visible": false },
-                    { "data": "job_id" },
+                    { "data": "job_id", "visible": false },
                     { "data": "job_name" },
                     { "data": "processed" },
                     { "data": "read" },
                     { "data": "transferred" },
                     { "data": "speed" },
-                    { "data": "source_load" },
-                    { "data": "source_processing_load" },
-                    { "data": "network_load" },
-                    { "data": "target_load" },
+                    { "data": "source_load", "visible": false },
+                    { "data": "source_processing_load", "visible": false },
+                    { "data": "network_load", "visible": false },
+                    { "data": "target_load", "visible": false },
                     { "data": "bottleneck" },
                     { "data": "duration" },
                     { "data": "created_at" }
                 ],
                 "dom": 'Bfrtip',
                 "buttons": [
+                    {
+                        extend: 'colvis',
+                        text: 'Colonne'
+                    },
                     {
                         extend: 'excelHtml5',
                         text: 'Export to Excel',
@@ -122,5 +93,4 @@
             });
         });
     </script>
-</body>
-</html>
+    {% endblock %}

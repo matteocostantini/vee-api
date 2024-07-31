@@ -1,0 +1,38 @@
+# vee-mail.config
+API_URL_BASE="https://<>"
+API_USERNAME=""  # Sostituisci con il tuo username
+API_PASSWORD=""  # Sostituisci con la tua password
+
+
+# name of the veeam backup job as set in veeam!
+JOBNAME="Scripts"
+# the sender email address
+EMAILFROM="veeam@aragorn3.apconsulting.net"
+# receiver email address
+EMAILTO="areasistemi@apconsulting.net"
+# directory of mail template file
+HTMLTEMPLATE="/opt/scripts_local/vee-mail/vee_mail_template.html"
+# if curl is installed vee-mail check for new version if set to 0
+SKIPVERSIONCHECK=0
+# if you backup to a smb-share fill in your credentials to get infos about free backup space
+SMBUSER=""
+SMBPWD=""
+# infomail: 1=always, 2=warning and error only, 3=error only
+INFOMAIL=1
+# variable sleep time if mail is not sent when started as post script
+SLEEP=60
+# if set to 1 get more debug output on script run
+DEBUG=0
+
+# Use curl instead of sendmail
+# set it to 1 to use Curl instead of sendmail to send the mail
+USECURL=0
+# you need to specify SMTP/SMTPS server in URI form
+CURLSMTPSERVER="smtp://mailserver:25"
+# you can specify smtp username/password
+CURLUSERNAME=""
+CURLPASSWORD=""
+# you can require STARTTLS next to the connection
+CURLSTARTTLS=0
+# you can ignore TLS certificate validation against CA
+CURLINSECURE=0

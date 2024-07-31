@@ -14,11 +14,28 @@ from authlib.oauth2.rfc6749 import grants
 from authlib.integrations.flask_oauth2 import AuthorizationServer, ResourceProtector
 from authlib.oauth2.rfc6750 import BearerTokenValidator
 from urllib.parse import urlparse, urljoin
+from flask_mail import Mail, Message
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask_apscheduler import APScheduler
+import pytz
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///jobs.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your_secret_key'  # Cambia con una chiave segreta sicura
+app.config['WTF_CSRF_ENABLED'] = True
+app.config['MAIL_SERVER'] = 'smtp.example.com'  # Cambia con il tuo server SMTP
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'your-email@example.com'  # Cambia con la tua email
+app.config['MAIL_PASSWORD'] = 'your-email-password'  # Cambia con la tua password
+app.config['MAIL_DEFAULT_SENDER'] = 'your-email@example.com'  # Cambia con la tua email
+
+mail = Mail(app)
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
+
 
 CORS(app)
 db = SQLAlchemy(app)
@@ -54,7 +71,7 @@ job_model = api.model('Job', {
     'start_time': fields.String(required=True, description='Ora di inizio'),
     'end_time': fields.String(required=True, description='Ora di fine'),
     'state': fields.String(required=True, description='Stato del job'),
-    'details': fields.String(required=True, description='Dettagli del job'),
+    'details': fields.String(required=False, description='Dettagli del job'),
     'job_id': fields.String(required=True, description='ID del job'),
     'job_name': fields.String(required=True, description='Nome del job'),
     'processed': fields.String(required=True, description='Dati processati'),
@@ -152,10 +169,9 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('home'))
+    return redirect(url_for('main_page'))
 
 @app.route('/jobs')
-@ip_whitelisted
 @login_required
 def jobs():
     return render_template('jobs.html')
@@ -309,7 +325,7 @@ class UserLogin(Resource):
             return jsonify({'token': token})
         return {'error': 'Invalid credentials'}, 401
 
-@auth_ns.route('/register')
+#@auth_ns.route('/register')
 class UserRegister(Resource):
     @auth_ns.expect(auth_model)
     def post(self):
@@ -321,7 +337,9 @@ class UserRegister(Resource):
         if User.query.filter_by(username=username).first():
             return {'error': 'User already exists'}, 400
 
-        hashed_password = generate_password_hash(password, method='sha256')
+        hashed_password = generate_password_hash(password
+#, method='sha256'
+)
         new_user = User(username=username, password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
@@ -401,9 +419,74 @@ class CreateClient(Resource):
             'client_name': client_data['client_name']
         }, 201
 
+def send_daily_summary():
+    with app.app_context():
+        today = datetime.date.today()
+        jobs = Job.query.filter(db.func.date(Job.created_at) == today).all()
+        
+        if jobs:
+            # Crea la tabella HTML
+            table_html = """
+            <table border="1">
+                <tr>
+                    <th>ID</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th>State</th>
+                    <th>Job Name</th>
+                    <th>Processed</th>
+                    <th>Read</th>
+                    <th>Transferred</th>
+                    <th>Speed</th>
+                    <th>Source Load</th>
+                    <th>Source Processing Load</th>
+                    <th>Network Load</th>
+                    <th>Target Load</th>
+                    <th>Bottleneck</th>
+                    <th>Duration</th>
+                    <th>Created At</th>
+                </tr>
+            """
+            for job in jobs:
+                table_html += f"""
+                <tr>
+                    <td>{job.id}</td>
+                    <td>{job.start_time}</td>
+                    <td>{job.end_time}</td>
+                    <td>{job.state}</td>
+                    <td>{job.job_name}</td>
+                    <td>{job.processed}</td>
+                    <td>{job.read}</td>
+                    <td>{job.transferred}</td>
+                    <td>{job.speed}</td>
+                    <td>{job.source_load}</td>
+                    <td>{job.source_processing_load}</td>
+                    <td>{job.network_load}</td>
+                    <td>{job.target_load}</td>
+                    <td>{job.bottleneck}</td>
+                    <td>{job.duration}</td>
+                    <td>{job.created_at}</td>
+                </tr>
+                """
+            table_html += "</table>"
+
+            # Crea il messaggio email
+            msg = Message(
+                subject='Daily Job Summary',
+                recipients=['recipient@example.com'],  # Cambia con l'email del destinatario
+                html=table_html
+            )
+            mail.send(msg)
+
+def schedule_tasks():
+    scheduler = BackgroundScheduler(timezone=pytz.timezone('Europe/Rome'))
+    scheduler.add_job(send_daily_summary, 'cron', hour=8, minute=0)
+    scheduler.start()
+
 api.add_namespace(auth_ns, path='/api/auth')
 api.add_namespace(jobs_ns, path='/api/jobs')
 
 if __name__ == '__main__':
+    schedule_tasks()
     app.run(debug=True, port=5000)
 
